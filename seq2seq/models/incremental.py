@@ -8,6 +8,7 @@ from .DecoderRNN import DecoderRNN
 from .seq2seq import Seq2seq
 
 from torch import nn
+import torch.nn.functional as F
 
 
 class IncrementalSeq2Seq(Seq2seq):
@@ -32,6 +33,7 @@ class IncrementalSeq2Seq(Seq2seq):
 
         # Add predictions of the encoder as well as the actual words in the input sequence to compute anticipation loss
         other["encoder_predictions"] = encoder_predictions
+        other["input_variable"] = input_variable
 
         return decoder_outputs, decoder_hidden, other
 
@@ -55,10 +57,19 @@ class AnticipatingEncoderRNN(EncoderRNN):
 
     def forward(self, input_var, input_lengths=None):
         output, hidden = super().forward(input_var, input_lengths)
-        predictive_dist = self.prediction_layer(output)
-        prediction = predictive_dist.argmax(dim=2)
 
-        return output, hidden, prediction
+        # Try to predict next word in sequence
+        encoder_predictions = []
+
+        # output[:, :-1]: Don't use last output for prediction because there is no more token in the sequence that could
+        # be predicted
+        for o_t in output[:, :-1].split(1, dim=1):
+            o_t = o_t.squeeze(1)
+            predictive_dist = self.prediction_layer(o_t)
+            predictive_dist = F.log_softmax(predictive_dist)
+            encoder_predictions.append(predictive_dist)
+
+        return output, hidden, encoder_predictions
 
 
 class BottleneckDecoderRNN(DecoderRNN):

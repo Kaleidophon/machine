@@ -187,6 +187,31 @@ class AnticipationLoss(NLLLoss):
     Loss imposed on an extended encoder that also tries to predict the next word in the sequence.
     """
     _NAME = "Anticipation Loss"
-    _SHORTNAME = "al"
+    _SHORTNAME = "antcp_loss"
     _INPUTS = "encoder_predictions"
-    _TARGETS = "input_variable"
+    _TARGETS = "shifted_input_variables"
+
+    def eval_batch(self, decoder_outputs, other, target_variable):
+        """ Evaluate and accumulate loss given outputs and expected results.
+
+        This method is called after each batch with the batch outputs and
+        the target (expected) results.  The loss and normalization term are
+        accumulated in this method.
+
+        Args:
+            decoder_outputs (torch.Tensor): outputs of a batch.
+            other (dictionary): extra outputs of the model
+            target_variable (torch.Tensor): expected output of a batch.
+        """
+
+        if self.inputs == 'decoder_output':
+            outputs = decoder_outputs
+        else:
+            outputs = other[self.inputs]
+
+        targets = target_variable[self.target]
+
+        for step, step_output in enumerate(outputs):
+            target = targets[:, step]
+            self.eval_step(step_output, target)
+

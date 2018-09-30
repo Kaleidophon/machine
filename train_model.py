@@ -6,7 +6,7 @@ import torch
 from torch.optim.lr_scheduler import StepLR
 import torchtext
 
-import seq2seq
+from seq2seq import src_field_name, tgt_field_name
 from seq2seq.trainer import SupervisedTrainer
 from seq2seq.models import EncoderRNN, DecoderRNN, Seq2seq, AnticipatingEncoderRNN, IncrementalSeq2Seq
 from seq2seq.loss import Perplexity, NLLLoss, AnticipationLoss
@@ -168,6 +168,7 @@ output_vocabulary = output_vocab.itos
 # Prepare loss and metrics
 weight = torch.ones(len(output_vocab))
 pad = output_vocab.stoi[tgt.pad_token]
+
 loss = [NLLLoss(ignore_index=pad)]
 loss_weights = [1.]
 
@@ -188,6 +189,18 @@ t = SupervisedTrainer(loss=loss, metrics=metrics,
                       eval_batch_size=opt.eval_batch_size,
                       checkpoint_every=opt.save_every,
                       print_every=opt.print_every, expt_dir=opt.output_dir)
+
+if opt.use_anticipation_loss:
+    def _get_incremental_batch_data(batch):
+        input_variables, input_lengths = getattr(batch, src_field_name)
+        target_variables = {
+            'decoder_output': getattr(batch, tgt_field_name),
+            # You can't predict the first token in a sequence from nothing
+            'shifted_input_variables': input_variables[:, 1:]
+        }
+        return input_variables, input_lengths, target_variables
+
+    t.get_batch_data = _get_incremental_batch_data
 
 checkpoint_path = os.path.join(opt.output_dir, opt.load_checkpoint) if opt.resume else None
 

@@ -180,3 +180,13 @@ class Perplexity(NLLLoss):
             print("WARNING: Loss exceeded maximum value, capping to e^100")
             return math.exp(Perplexity._MAX_EXP)
         return math.exp(nll)
+
+
+class AnticipationLoss(NLLLoss):
+    """
+    Loss imposed on an extended encoder that also tries to predict the next word in the sequence.
+    """
+    _NAME = "Anticipation Loss"
+    _SHORTNAME = "al"
+    _INPUTS = "encoder_predictions"
+    _TARGETS = "input_variable"

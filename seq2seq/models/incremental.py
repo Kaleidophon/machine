@@ -5,8 +5,39 @@ linguistic information more incrementally and therefore closer to the way that h
 
 from .EncoderRNN import EncoderRNN
 from .DecoderRNN import DecoderRNN
+from .seq2seq import Seq2seq
 
 from torch import nn
+
+
+class IncrementalSeq2Seq(Seq2seq):
+    """
+    Extension of the Seq2Seq model class to enable more problem-specific capabilities.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.last_encoder_predictions = None
+
+    def forward(self, input_variable, input_lengths=None, target_variable=None,
+                teacher_forcing_ratio=0):
+        encoder_outputs, encoder_hidden, encoder_predictions = self.encoder(input_variable, input_lengths)
+
+        decoder_outputs, decoder_hidden, other = self.decoder(
+            inputs=target_variable,
+            encoder_hidden=encoder_hidden,
+            encoder_outputs=encoder_outputs,
+            function=self.decode_function,
+            teacher_forcing_ratio=teacher_forcing_ratio
+        )
+
+        # Add predictions of the encoder as well as the actual words in the input sequence to compute anticipation loss
+        other["encoder_predictions"] = encoder_predictions
+
+        return decoder_outputs, decoder_hidden, other
+
+    @property
+    def encoder_predictions(self):
+        return self.last_encoder_predictions
 
 
 class AnticipatingEncoderRNN(EncoderRNN):
@@ -24,7 +55,8 @@ class AnticipatingEncoderRNN(EncoderRNN):
 
     def forward(self, input_var, input_lengths=None):
         output, hidden = super().forward(input_var, input_lengths)
-        prediction = self.prediction_layer(hidden)
+        predictive_dist = self.prediction_layer(output)
+        prediction = predictive_dist.argmax(dim=2)
 
         return output, hidden, prediction
 

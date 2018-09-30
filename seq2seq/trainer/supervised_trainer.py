@@ -18,6 +18,7 @@ from seq2seq.metrics import WordAccuracy
 from seq2seq.optim import Optimizer
 from seq2seq.util.checkpoint import Checkpoint
 
+
 class SupervisedTrainer(object):
     """ The SupervisedTrainer class helps in setting up a training framework in a
     supervised setting.
@@ -39,7 +40,7 @@ class SupervisedTrainer(object):
         if random_seed is not None:
             random.seed(random_seed)
             torch.manual_seed(random_seed)
-        k = NLLLoss()
+
         self.loss = loss
         self.metrics = metrics
         self.loss_weights = loss_weights or len(loss)*[1.]
@@ -58,8 +59,6 @@ class SupervisedTrainer(object):
         self.logger = logging.getLogger(__name__)
 
     def _train_batch(self, input_variable, input_lengths, target_variable, model, teacher_forcing_ratio):
-        loss = self.loss
-
         # Forward propagation
         decoder_outputs, decoder_hidden, other = model(input_variable, input_lengths, target_variable['decoder_output'],
                                                        teacher_forcing_ratio=teacher_forcing_ratio)
@@ -117,7 +116,6 @@ class SupervisedTrainer(object):
                    epoch=start_epoch, step=start_step,
                    input_vocab=data.fields[seq2seq.src_field_name].vocab,
                    output_vocab=data.fields[seq2seq.tgt_field_name].vocab).save(self.expt_dir, name=model_name)
-
 
         for epoch in range(start_epoch, n_epochs + 1):
             log.debug("Epoch: %d, Step: %d" % (epoch, step))

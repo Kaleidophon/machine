@@ -63,7 +63,9 @@ class AnticipatingEncoderRNN(EncoderRNN):
 
         # output[:, :-1]: Don't use last output for prediction because there is no more token in the sequence that could
         # be predicted
-        for o_t in output[:, :-1].split(1, dim=1):
+        time_steps = [output] if output.shape[1] == 1 else output[:, :-1].split(1, dim=1)
+
+        for o_t in time_steps:
             o_t = o_t.squeeze(1)
             predictive_dist = self.prediction_layer(o_t)
             predictive_dist = F.log_softmax(predictive_dist)

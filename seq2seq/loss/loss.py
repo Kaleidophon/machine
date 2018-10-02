@@ -2,6 +2,9 @@ from __future__ import print_function
 import math
 import torch.nn as nn
 import numpy as np
+from torch import autograd
+import torch
+
 
 class Loss(object):
     """ Base class for encapsulation of the loss functions.
@@ -211,7 +214,20 @@ class AnticipationLoss(NLLLoss):
 
         targets = target_variable[self.target]
 
-        for step, step_output in enumerate(outputs):
-            target = targets[:, step]
-            self.eval_step(step_output, target)
+        # The input sequence has to be longer than one word in order to calculate a loss
+        # In this case targets will have 0 elements, because self.target = shifted_input_variables, i.e. the input
+        # sequence without the first element (you can't predict the first token from nothing)
+        if len(targets) > 0:
+            for step, step_output in enumerate(outputs):
+                # TODO: Check if this should be step +1
+                target = targets[:, step]
+                self.eval_step(step_output, target)
+        else:
+            # TODO: Find a better solution to this
+            # When a sequence is too short to calculate a loss, acc_loss will remain a simple float and calling
+            # backward() on it produces an error
+            dummy_var = autograd.Variable(torch.Tensor([[0]]), requires_grad=True)
+            dummy_target = autograd.Variable(torch.LongTensor([0]))
+            self.acc_loss += self.criterion(dummy_var, dummy_target)
+            self.norm_term += 1
 

@@ -15,9 +15,9 @@ class IncrementalSeq2Seq(Seq2seq):
     """
     Extension of the Seq2Seq model class to enable more problem-specific capabilities.
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, use_embeddings=False, **kwargs):
         super().__init__(*args, **kwargs)
-        self.last_encoder_predictions = None
+        self.use_embeddings = use_embeddings
 
     def forward(self, input_variable, input_lengths=None, target_variable=None,
                 teacher_forcing_ratio=0):
@@ -32,14 +32,16 @@ class IncrementalSeq2Seq(Seq2seq):
         )
 
         # Add predictions of the encoder as well as the actual words in the input sequence to compute anticipation loss
-        other["encoder_predictions"] = encoder_predictions
-        other["input_variable"] = input_variable
+        if not self.use_embeddings:
+            other["encoder_predictions"] = encoder_predictions
+            other["shifted_input_variables"] = input_variable[:, 1:]
+
+        # Use embedding and calculate a MSE loss instead
+        else:
+            other["encoder_predicted_embeddings"] = encoder_predictions
+            other["shifted_input_embeddings"] = self.encoder.embedding(input_variable[:, 1:])
 
         return decoder_outputs, decoder_hidden, other
-
-    @property
-    def encoder_predictions(self):
-        return self.last_encoder_predictions
 
 
 class AnticipatingEncoderRNN(EncoderRNN):
@@ -72,6 +74,25 @@ class AnticipatingEncoderRNN(EncoderRNN):
             encoder_predictions.append(predictive_dist)
 
         return output, hidden, encoder_predictions
+
+
+class AnticipatingEmbeddingEncoderRNN(AnticipatingEncoderRNN):
+    """
+    Special kind of encoder which tries to also predict the next token of the sequence, but using the index of the
+    predicted word to look up an embedding an impose the loss as the distance between the predicted embedding an the
+    actual next embedding.
+    """
+    def forward(self, input_var, input_lengths=None):
+        # Get output of AnticipatingEncoderRNN
+        output, hidden, encoder_prediction_dists = super().forward(input_var, input_lengths)
+
+        # Get indices of predicted words
+        encoder_predicted_indices = [predictive_dist.argmax(dim=1) for predictive_dist in encoder_prediction_dists]
+
+        # Look up embeddings
+        encoder_predicted_embeddings = [self.embedding(indices) for indices in encoder_predicted_indices]
+
+        return output, hidden, encoder_predicted_embeddings
 
 
 class BottleneckDecoderRNN(DecoderRNN):

@@ -1,1 +1,1 @@
-from .loss import NLLLoss, Perplexity, AnticipationLoss
+from .loss import NLLLoss, Perplexity, AnticipationLoss, AnticipationEmbeddingLoss

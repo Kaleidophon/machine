@@ -8,8 +8,8 @@ import torchtext
 
 from seq2seq import src_field_name, tgt_field_name
 from seq2seq.trainer import SupervisedTrainer
-from seq2seq.models import EncoderRNN, DecoderRNN, Seq2seq, AnticipatingEncoderRNN, IncrementalSeq2Seq
-from seq2seq.loss import Perplexity, NLLLoss, AnticipationLoss
+from seq2seq.models import EncoderRNN, DecoderRNN, Seq2seq, AnticipatingEncoderRNN, IncrementalSeq2Seq, AnticipatingEmbeddingEncoderRNN
+from seq2seq.loss import Perplexity, NLLLoss, AnticipationLoss, AnticipationEmbeddingLoss
 from seq2seq.metrics import WordAccuracy, SequenceAccuracy
 from seq2seq.optim import Optimizer
 from seq2seq.dataset import SourceField, TargetField
@@ -44,7 +44,7 @@ parser.add_argument('--attention_method', choices=['dot', 'mlp'], default=None)
 parser.add_argument('--batch_size', type=int, help='Batch size', default=32)
 parser.add_argument('--eval_batch_size', type=int, help='Batch size', default=128)
 parser.add_argument('--lr', type=float, help='Learning rate, recommended settings.\nrecommended settings: adam=0.001 adadelta=1.0 adamax=0.002 rmsprop=0.01 sgd=0.1', default=0.001)
-parser.add_argument('--use_anticipation_loss', action='store_true', help='Indicate whether an additional loss term should be imposed on the encoder.')
+parser.add_argument('--anticipation_loss', choices=["normal", "embeddings"], help='Indicate whether an additional loss term should be imposed on the encoder.')
 
 parser.add_argument('--load_checkpoint', help='The name of the checkpoint to load, usually an encoded time string')
 parser.add_argument('--save_every', type=int, help='Every how many batches the model should be saved', default=100)
@@ -125,7 +125,13 @@ else:
     # Initialize model
     hidden_size = opt.hidden_size
     decoder_hidden_size = hidden_size*2 if opt.bidirectional else hidden_size
-    encoder = AnticipatingEncoderRNN(len(src.vocab), max_len, hidden_size,
+    encoder_classes = {
+        None: EncoderRNN,
+        "normal": AnticipatingEncoderRNN,
+        "embeddings": AnticipatingEmbeddingEncoderRNN
+    }
+    encoder_cls = encoder_classes[opt.anticipation_loss]
+    encoder = encoder_cls(len(src.vocab), max_len, hidden_size,
                          opt.embedding_size,
                          dropout_p=opt.dropout_p_encoder,
                          n_layers=opt.n_layers,
@@ -140,7 +146,7 @@ else:
                          bidirectional=opt.bidirectional,
                          rnn_cell=opt.rnn_cell,
                          eos_id=tgt.eos_id, sos_id=tgt.sos_id)
-    seq2seq = IncrementalSeq2Seq(encoder, decoder)
+    seq2seq = IncrementalSeq2Seq(encoder, decoder, use_embeddings=(opt.anticipation_loss == "embeddings"))
     if torch.cuda.is_available():
         seq2seq.cuda()
 
@@ -174,8 +180,11 @@ loss_weights = [1.]
 
 metrics = [WordAccuracy(ignore_index=pad), SequenceAccuracy(ignore_index=pad)]
 
-if opt.use_anticipation_loss:
+if opt.anticipation_loss == "normal":
     anticipation_loss = AnticipationLoss()
+    loss.append(anticipation_loss)
+elif opt.anticipation_loss == "embeddings":
+    anticipation_loss = AnticipationEmbeddingLoss()
     loss.append(anticipation_loss)
 
 if torch.cuda.is_available():
@@ -189,18 +198,6 @@ t = SupervisedTrainer(loss=loss, metrics=metrics,
                       eval_batch_size=opt.eval_batch_size,
                       checkpoint_every=opt.save_every,
                       print_every=opt.print_every, expt_dir=opt.output_dir)
-
-if opt.use_anticipation_loss:
-    def _get_incremental_batch_data(batch):
-        input_variables, input_lengths = getattr(batch, src_field_name)
-        target_variables = {
-            'decoder_output': getattr(batch, tgt_field_name),
-            # You can't predict the first token in a sequence from nothing
-            'shifted_input_variables': input_variables[:, 1:]
-        }
-        return input_variables, input_lengths, target_variables
-
-    t.get_batch_data = _get_incremental_batch_data
 
 checkpoint_path = os.path.join(opt.output_dir, opt.load_checkpoint) if opt.resume else None
 

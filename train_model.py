@@ -146,7 +146,12 @@ else:
                          bidirectional=opt.bidirectional,
                          rnn_cell=opt.rnn_cell,
                          eos_id=tgt.eos_id, sos_id=tgt.sos_id)
-    seq2seq = IncrementalSeq2Seq(encoder, decoder, use_embeddings=(opt.anticipation_loss == "embeddings"))
+
+    if opt.anticipation_loss is None:
+        seq2seq = Seq2seq(encoder, decoder)
+    else:
+        seq2seq = IncrementalSeq2Seq(encoder, decoder, use_embeddings=(opt.anticipation_loss == "embeddings"))
+
     if torch.cuda.is_available():
         seq2seq.cuda()
 

@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import abc
 
 
-class AbstractSeq2Seq:
+class AbstractSeq2seq:
     """
     Abstract sequence to sequence model defining common functions.
     """
@@ -16,7 +16,7 @@ class AbstractSeq2Seq:
         pass
 
 
-class EncoderSeq2Seq(AbstractSeq2Seq, nn.Module):
+class EncoderSeq2seq(AbstractSeq2seq, nn.Module):
     """ Sequence-to-sequence architecture only with a configurable encoder.
 
        Args:
@@ -39,12 +39,12 @@ class EncoderSeq2Seq(AbstractSeq2Seq, nn.Module):
     def flatten_parameters(self):
         self.encoder.rnn.flatten_parameters()
 
-    def forward(self, input_variable, input_lengths=None):
+    def forward(self, input_variable, input_lengths=None, **unused):
         encoder_outputs, encoder_hidden = self.encoder(input_variable, input_lengths)
         return encoder_outputs, encoder_hidden
 
 
-class DecoderSeq2Seq(AbstractSeq2Seq, nn.Module):
+class DecoderSeq2seq(AbstractSeq2seq, nn.Module):
     """ Sequence-to-sequence architecture only using a configurable decoder.
 
        Args:
@@ -80,7 +80,7 @@ class DecoderSeq2Seq(AbstractSeq2Seq, nn.Module):
         self.decoder.rnn.flatten_parameters()
 
     def forward(self, encoder_hidden, encoder_outputs, target_variables=None,
-                teacher_forcing_ratio=0):
+                teacher_forcing_ratio=0, **unused):
         # Unpack target variables
         try:
             target_output = target_variables.get('decoder_output', None)
@@ -135,8 +135,8 @@ class Seq2seq(nn.Module):
 
     def __init__(self, encoder, decoder, decode_function=F.log_softmax):
         super().__init__()
-        self.encoder_seq2seq = EncoderSeq2Seq(encoder)
-        self.decoder_seq2seq = DecoderSeq2Seq(decoder, decode_function)
+        self.encoder_seq2seq = EncoderSeq2seq(encoder)
+        self.decoder_seq2seq = DecoderSeq2seq(decoder, decode_function)
 
     def flatten_parameters(self):
         self.encoder_seq2seq.flatten_parameters()

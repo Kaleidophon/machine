@@ -62,10 +62,10 @@ class SupervisedTrainer(object):
         loss = self.loss
 
         # Forward propagation
-        decoder_outputs, decoder_hidden, other = model(input_variable, input_lengths, target_variable, teacher_forcing_ratio=teacher_forcing_ratio)
-
+        decoder_outputs, decoder_hidden, other = model(input_variable=input_variable, input_lengths=input_lengths, target_variables=target_variable
+        , teacher_forcing_ratio=teacher_forcing_ratio)
         losses = self.evaluator.compute_batch_loss(decoder_outputs, decoder_hidden, other, target_variable)
-        
+
         # Backward propagation
         for i, loss in enumerate(losses, 0):
             loss.scale_loss(self.loss_weights[i])
@@ -214,7 +214,7 @@ class SupervisedTrainer(object):
         return logs
 
     def train(self, model, data, num_epochs=5,
-              resume=False, dev_data=None, 
+              resume=False, dev_data=None,
               monitor_data={}, optimizer=None,
               teacher_forcing_ratio=0,
               learning_rate=0.001, checkpoint_path=None, top_k=5):

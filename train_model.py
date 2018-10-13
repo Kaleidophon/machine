@@ -13,7 +13,7 @@ from collections import OrderedDict
 
 import seq2seq
 from seq2seq.trainer import SupervisedTrainer
-from seq2seq.models import EncoderRNN, DecoderRNN, Seq2seq
+from seq2seq.models import EncoderRNN, DecoderRNN, Seq2seq, EncoderSeq2seq, DecoderSeq2seq
 from seq2seq.loss import Perplexity, AttentionLoss, NLLLoss
 from seq2seq.metrics import WordAccuracy, SequenceAccuracy, FinalTargetAccuracy, SymbolRewritingAccuracy
 from seq2seq.optim import Optimizer
@@ -224,13 +224,13 @@ output_vocabulary = output_vocab.itos
 # print "Input vocabulary:"
 # for i, word in enumerate(input_vocabulary):
 #     print i, word
-# 
+#
 # print "Output vocabulary:"
 # for i, word in enumerate(output_vocabulary):
 #     print i, word
-# 
+#
 # raw_input()
-# 
+#
 
 ##############################################################################
 # train model
@@ -265,14 +265,14 @@ metrics = [WordAccuracy(ignore_index=pad), SequenceAccuracy(ignore_index=pad), F
 checkpoint_path = os.path.join(opt.output_dir, opt.load_checkpoint) if opt.resume else None
 
 # create trainer
-t = SupervisedTrainer(loss=losses, metrics=metrics, 
+t = SupervisedTrainer(loss=losses, metrics=metrics,
                       loss_weights=loss_weights,
                       batch_size=opt.batch_size,
                       eval_batch_size=opt.eval_batch_size,
                       checkpoint_every=opt.save_every,
                       print_every=opt.print_every, expt_dir=opt.output_dir)
 
-seq2seq, logs = t.train(seq2seq, train, 
+seq2seq, logs = t.train(seq2seq, train,
                   num_epochs=opt.epochs, dev_data=dev,
                   monitor_data=monitor_data,
                   optimizer=opt.optim,

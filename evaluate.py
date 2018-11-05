@@ -11,6 +11,8 @@ from seq2seq.dataset import SourceField, TargetField
 from seq2seq.evaluator import Evaluator
 from seq2seq.util.checkpoint import Checkpoint
 from seq2seq.trainer import SupervisedTrainer
+from seq2seq.loss import NLLLoss
+from seq2seq.metrics import WordAccuracy, SequenceAccuracy
 
 try:
     raw_input          # Python 2
@@ -61,16 +63,18 @@ test = torchtext.data.TabularDataset(
 # Prepare loss
 weight = torch.ones(len(output_vocab))
 pad = output_vocab.stoi[tgt.pad_token]
-loss = Perplexity(weight, pad)
+loss = Perplexity(pad)
+metrics = [WordAccuracy(pad), SequenceAccuracy(pad)]
 if torch.cuda.is_available():
     loss.cuda()
 
 #################################################################################
 # Evaluate model on test set
 
-evaluator = Evaluator(loss=loss, batch_size=opt.batch_size)
+evaluator = Evaluator(loss=[loss], metrics=metrics, batch_size=opt.batch_size)
 losses, metrics = evaluator.evaluate(seq2seq, test)
 
-total_loss, log_msg, _ = SupervisedTrainer.print_eval(losses, metrics, 0)
+print(["{}: {:6f}".format(type(metric).__name__, metric.get_val()) for metric in metrics])
+#total_loss, log_msg, _ = SupervisedTrainer.print_eval(losses, metrics, 0)
 
-print(log_msg)
+#print(log_msg)

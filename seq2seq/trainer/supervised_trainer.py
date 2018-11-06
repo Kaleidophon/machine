@@ -17,6 +17,7 @@ from seq2seq.loss import NLLLoss
 from seq2seq.metrics import WordAccuracy
 from seq2seq.optim import Optimizer
 from seq2seq.util.checkpoint import Checkpoint
+from seq2seq.util.log import Log
 
 
 class SupervisedTrainer(object):
@@ -107,6 +108,7 @@ class SupervisedTrainer(object):
 
         total_loss, log_msg, model_name = self.get_losses(losses, metrics, step)
 
+        logs = Log()
         loss_best = top_k*[total_loss]
         best_checkpoints = top_k*[None]
         best_checkpoints[0] = model_name
@@ -152,11 +154,14 @@ class SupervisedTrainer(object):
                     train_log_msg = ' '.join(['%s: %.4f' % (loss.log_name, loss.get_loss()) for loss in losses])
 
                     m_logs = {}
+                    m_logs['Train'] = train_log_msg
+
                     # compute vals for all monitored sets
                     for m_data in monitor_data:
                         losses, metrics = self.evaluator.evaluate(model, monitor_data[m_data], self.get_batch_data)
                         total_loss, log_msg, model_name = self.get_losses(losses, metrics, step)
-                        m_logs[m_data] = ' '.join(['%s: %.4f' % (loss.log_name, loss.get_loss()) for loss in losses])
+                        m_logs[m_data] = log_msg
+                        logs.write_to_log(m_data, losses, metrics, step)
 
                     all_losses = ' '.join(['%s %s' % (name, m_logs[name]) for name in m_logs])
 
@@ -209,6 +214,8 @@ class SupervisedTrainer(object):
                 self.optimizer.update(sum(epoch_loss_avg.values()), epoch) # TODO check if this makes sense!
 
             log.info(log_msg)
+
+        return logs
 
     def train(self, model, data, num_epochs=5,
               resume=False, dev_data=None, monitor_data={},
@@ -263,12 +270,12 @@ class SupervisedTrainer(object):
 
         self.logger.info("Optimizer: %s, Scheduler: %s" % (self.optimizer.optimizer, self.optimizer.scheduler))
 
-        self._train_epoches(data, model, num_epochs,
+        logs = self._train_epoches(data, model, num_epochs,
                             start_epoch, step, dev_data=dev_data,
                             monitor_data=monitor_data,
                             teacher_forcing_ratio=teacher_forcing_ratio,
                             top_k=top_k)
-        return model
+        return model, logs
 
     @staticmethod
     def get_batch_data(batch):

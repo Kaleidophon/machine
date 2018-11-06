@@ -72,7 +72,7 @@ if torch.cuda.is_available():
 # Evaluate model on test set
 
 evaluator = Evaluator(loss=[loss], metrics=metrics, batch_size=opt.batch_size)
-losses, metrics = evaluator.evaluate(seq2seq, test)
+losses, metrics = evaluator.evaluate(seq2seq, test, SupervisedTrainer.get_batch_data)
 
 print(["{}: {:6f}".format(type(metric).__name__, metric.get_val()) for metric in metrics])
 #total_loss, log_msg, _ = SupervisedTrainer.print_eval(losses, metrics, 0)

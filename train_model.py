@@ -2,6 +2,8 @@ import os
 import argparse
 import logging
 
+from collections import OrderedDict
+
 import torch
 from torch.optim.lr_scheduler import StepLR
 import torchtext
@@ -45,26 +47,36 @@ parser.add_argument('--batch_size', type=int, help='Batch size', default=32)
 parser.add_argument('--eval_batch_size', type=int, help='Batch size', default=128)
 parser.add_argument('--lr', type=float, help='Learning rate, recommended settings.\nrecommended settings: adam=0.001 adadelta=1.0 adamax=0.002 rmsprop=0.01 sgd=0.1', default=0.001)
 parser.add_argument('--anticipation_loss', choices=["normal", "embeddings"], help='Indicate whether an additional loss term should be imposed on the encoder.')
+parser.add_argument('--ignore_output_eos', action='store_true', help='Ignore end of sequence token during training and evaluation')
 
 parser.add_argument('--load_checkpoint', help='The name of the checkpoint to load, usually an encoded time string')
 parser.add_argument('--save_every', type=int, help='Every how many batches the model should be saved', default=100)
 parser.add_argument('--print_every', type=int, help='Every how many batches to print results', default=100)
 parser.add_argument('--resume', action='store_true', help='Indicates if training has to be resumed from the latest checkpoint')
 parser.add_argument('--log-level', default='info', help='Logging level.')
-parser.add_argument('--log_path', default=None, help='Path to log file. Setting to None will produce no log.')
+parser.add_argument('--write-logs', help='Specify file to write logs to after training')
 parser.add_argument('--cuda_device', default=0, type=int, help='set cuda device to use')
 
 opt = parser.parse_args()
-
-if opt.resume and not opt.load_checkpoint:
-    parser.error('load_checkpoint argument is required to resume training from checkpoint')
+IGNORE_INDEX=-1
+use_output_eos = not opt.ignore_output_eos
 
 LOG_FORMAT = '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'
 logging.basicConfig(format=LOG_FORMAT, level=getattr(logging, opt.log_level.upper()))
 logging.info(opt)
 
+
+if opt.resume and not opt.load_checkpoint:
+    parser.error('load_checkpoint argument is required to resume training from checkpoint')
+
+if not opt.attention and opt.attention_method:
+    parser.error("Attention method provided, but attention is not turned on")
+
+if opt.attention and not opt.attention_method:
+    parser.error("Attention turned on, but no attention method provided")
+
 if torch.cuda.is_available():
-        print("Cuda device set to %i" % opt.cuda_device)
+        logging.info("Cuda device set to %i" % opt.cuda_device)
         torch.cuda.set_device(opt.cuda_device)
 
 if opt.attention:
@@ -75,6 +87,9 @@ if opt.attention:
 # Prepare dataset
 src = SourceField()
 tgt = TargetField()
+
+tabular_data_fields = [('src', src), ('tgt', tgt)]
+
 max_len = opt.max_len
 
 def len_filter(example):
@@ -83,24 +98,25 @@ def len_filter(example):
 # generate training and testing data
 train = torchtext.data.TabularDataset(
     path=opt.train, format='tsv',
-    fields=[('src', src), ('tgt', tgt)],
+    fields=tabular_data_fields,
     filter_pred=len_filter
 )
 
 if opt.dev:
     dev = torchtext.data.TabularDataset(
         path=opt.dev, format='tsv',
-        fields=[('src', src), ('tgt', tgt)],
+        fields=tabular_data_fields,
         filter_pred=len_filter
     )
+
 else:
     dev = None
 
-monitor_data = {}
+monitor_data = OrderedDict()
 for dataset in opt.monitor:
     m = torchtext.data.TabularDataset(
         path=dataset, format='tsv',
-        fields=[('src', src), ('tgt', tgt)],
+        fields=tabular_data_fields,
         filter_pred=len_filter)
     monitor_data[dataset] = m
 
@@ -116,6 +132,9 @@ if opt.load_checkpoint is not None:
     output_vocab = checkpoint.output_vocab
     src.vocab = input_vocab
     tgt.vocab = output_vocab
+    tgt.eos_id = tgt.vocab.stoi[tgt.SYM_EOS]
+    tgt.sos_id = tgt.vocab.stoi[tgt.SYM_SOS]
+
 else:
     # build vocabulary
     src.build_vocab(train, max_size=opt.src_vocab)
@@ -193,9 +212,9 @@ elif opt.anticipation_loss == "embeddings":
     anticipation_loss = AnticipationEmbeddingLoss()
     loss.append(anticipation_loss)
 
-if torch.cuda.is_available():
-    for loss_func in loss:
-        loss_func.cuda()
+metrics = [WordAccuracy(ignore_index=pad), SequenceAccuracy(ignore_index=pad)]
+
+checkpoint_path = os.path.join(opt.output_dir, opt.load_checkpoint) if opt.resume else None
 
 # create trainer
 t = SupervisedTrainer(loss=loss, metrics=metrics, 
@@ -205,9 +224,7 @@ t = SupervisedTrainer(loss=loss, metrics=metrics,
                       checkpoint_every=opt.save_every,
                       print_every=opt.print_every, expt_dir=opt.output_dir)
 
-checkpoint_path = os.path.join(opt.output_dir, opt.load_checkpoint) if opt.resume else None
-
-seq2seq = t.train(seq2seq, train,
+seq2seq, logs = t.train(seq2seq, train,
                   num_epochs=opt.epochs, dev_data=dev,
                   monitor_data=monitor_data,
                   optimizer=opt.optim,
@@ -215,6 +232,10 @@ seq2seq = t.train(seq2seq, train,
                   learning_rate=opt.lr,
                   resume=opt.resume,
                   checkpoint_path=checkpoint_path)
+
+if opt.write_logs:
+    output_path = os.path.join(opt.output_dir, opt.write_logs)
+    logs.write_to_file(output_path)
 
 # evaluator = Evaluator(loss=loss, batch_size=opt.batch_size)
 # dev_loss, accuracy = evaluator.evaluate(seq2seq, dev)

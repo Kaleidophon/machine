@@ -1,1 +1,1 @@
-from .log import LogCollection
+from .log import LogCollection, Log

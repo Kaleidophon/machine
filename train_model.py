@@ -51,6 +51,7 @@ parser.add_argument('--save_every', type=int, help='Every how many batches the m
 parser.add_argument('--print_every', type=int, help='Every how many batches to print results', default=100)
 parser.add_argument('--resume', action='store_true', help='Indicates if training has to be resumed from the latest checkpoint')
 parser.add_argument('--log-level', default='info', help='Logging level.')
+parser.add_argument('--log_path', default=None, help='Path to log file. Setting to None will produce no log.')
 parser.add_argument('--cuda_device', default=0, type=int, help='set cuda device to use')
 
 opt = parser.parse_args()

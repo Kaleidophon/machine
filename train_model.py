@@ -208,6 +208,7 @@ metrics = [WordAccuracy(ignore_index=pad), SequenceAccuracy(ignore_index=pad)]
 if opt.anticipation_loss == "normal":
     anticipation_loss = AnticipationLoss()
     loss.append(anticipation_loss)
+    loss_weights.append(0.5)
 elif opt.anticipation_loss == "embeddings":
     anticipation_loss = AnticipationEmbeddingLoss()
     loss.append(anticipation_loss)

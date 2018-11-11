@@ -2,9 +2,9 @@ from __future__ import print_function
 
 import os
 import matplotlib
-if os.environ.get('DISPLAY','') == '':
-        print('no display found. Using non-interactive Agg backend')
-        matplotlib.use('Agg')
+#if os.environ.get('DISPLAY','') == '':
+#        print('no display found. Using non-interactive Agg backend')
+#        matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
@@ -83,7 +83,8 @@ class Log(object):
         """
         f = open(path, 'rb')
 
-        lines = f.readlines()
+        lines = [l.strip() for l in f.readlines()]
+
         self.steps = [int(i) for i in lines[0].split()[1:]]
 
         for line in lines[1:]:
@@ -171,21 +172,11 @@ class LogCollection(object):
                                      label=label+label_name)
                         ax.tick_params(axis='both', which='major', labelsize=20)
                         plt.xlabel("Epochs", fontsize=24)
-                        plt.ylabel("Sequence Accuracy", fontsize=24)
+                        plt.ylabel("Loss", fontsize=24)
                         plt.title(title)
 
-        k_line  = mlines.Line2D([], [], color='black', linestyle='--', label='Baseline, training loss', linewidth=3)
-        k_line2 = mlines.Line2D([], [], color='black', label='Attention Guidance, training loss', linewidth=3)
-        m_line  = mlines.Line2D([], [], color='m', label='Baseline, test loss', linewidth=3)
-        g_line  = mlines.Line2D([], [], color='g', label='Attention Guidance, test loss', linewidth=3)
-
-        baseline = mlines.Line2D([], [], color='m', linewidth=3.0, label='Baseline')
-        guided = mlines.Line2D([], [], color='g', linewidth=3.0, label='Guided')
-
-        # plt.legend([k_line, k_line2, m_line, g_line], ['Baseline training', 'Guided, training', 'Baseline, test', 'Guided, test'], fontsize=24)
-        plt.legend([baseline, guided], ['Baseline', 'Guided'], fontsize=24)
+        plt.legend()
         plt.show()
-
         return fig
 
     def find_highest_average(self, metric_name, find_basename,
@@ -275,13 +266,13 @@ class LogCollection(object):
 
         steps = [step/float(232) for step in self.logs[0].steps[:eor]]
         for model, data in group_data.items():
-            for dataset in data:
-                av = np.mean(data[dataset], axis=0)[:eor]
+            for dataset_name, dataset in data.items():
+                av = np.mean(data[dataset_name], axis=0)[:eor]
                 if color_group:
                     print(dataset, model, color_group(model, dataset))
                     ax.plot(steps, av, color_group(model, dataset), label=model+dataset, linewidth=3.0)
                 else:
-                    ax.plot(steps, av, dataset, label=model+dataset)
+                    ax.plot(steps, av, dataset, label=model+dataset_name)
 
 
         ax.tick_params(axis='both', which='major', labelsize=20)

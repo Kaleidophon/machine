@@ -2,7 +2,7 @@ import os
 
 from seq2seq.util import LogCollection, Log
 
-
+import matplotlib.pyplot as plt
 from seq2seq.util.log import LogCollection
 import re
 
@@ -218,11 +218,20 @@ def color_size(model_name, data_name):
 # plot_val_loss()
 
 
+def custom_name_parser(filename, subdir):
+    splits = filename.split('/')
+    return splits[-1].replace(".log", "")
+
+
 if __name__ == "__main__":
     LOG_PATH = "../logs/"
     lc = LogCollection()
 
-    lc.add_log_from_folder(LOG_PATH, name_parser=name_parser)
+    lc.add_log_from_folder(LOG_PATH, name_parser=custom_name_parser, ext=".log")
 
-    ...
-
+    #fig = lc.plot_groups("nll_loss", find_basename=lambda name: name.replace("_", " "), find_data_name=lambda name: name.lower(), eor=-1000)
+    #fig = lc.plot_metric("nll_loss", title="NLLoss on SCAN lengths", restrict_model=lambda name: "lengths" in name)
+    #fig = lc.plot_metric("nll_loss", title="NLLoss on SCAN left", restrict_model=lambda name: "left" in name)
+    fig = lc.plot_metric("nll_loss", title="NLLoss on SCAN jump", restrict_model=lambda name: "jump" in name)
+    fig = lc.plot_metric("nll_loss", title="NLLoss on SCAN", restrict_model=lambda name: "simple" in name)
+    #fig = lc.plot_metric("antcp_loss", title="Anticipation Loss across datasets", restrict_model=lambda name: "incremental" in name, eor=-100)

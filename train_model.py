@@ -48,6 +48,7 @@ parser.add_argument('--eval_batch_size', type=int, help='Batch size', default=12
 parser.add_argument('--lr', type=float, help='Learning rate, recommended settings.\nrecommended settings: adam=0.001 adadelta=1.0 adamax=0.002 rmsprop=0.01 sgd=0.1', default=0.001)
 parser.add_argument('--anticipation_loss', choices=["normal", "embeddings"], help='Indicate whether an additional loss term should be imposed on the encoder.')
 parser.add_argument('--ignore_output_eos', action='store_true', help='Ignore end of sequence token during training and evaluation')
+parser.add_argument('--scale_anticipation_loss', type=float, default=1.0, help="Scale the anticipation loss with some factor,")
 
 parser.add_argument('--load_checkpoint', help='The name of the checkpoint to load, usually an encoded time string')
 parser.add_argument('--save_every', type=int, help='Every how many batches the model should be saved', default=100)
@@ -208,10 +209,11 @@ metrics = [WordAccuracy(ignore_index=pad), SequenceAccuracy(ignore_index=pad)]
 if opt.anticipation_loss == "normal":
     anticipation_loss = AnticipationLoss()
     loss.append(anticipation_loss)
-    loss_weights.append(0.5)
+    loss_weights.append(opt.scale_anticipation_loss)
 elif opt.anticipation_loss == "embeddings":
     anticipation_loss = AnticipationEmbeddingLoss()
     loss.append(anticipation_loss)
+    loss_weights.append(opt.scale_anticipation_loss)
 
 metrics = [WordAccuracy(ignore_index=pad), SequenceAccuracy(ignore_index=pad)]
 

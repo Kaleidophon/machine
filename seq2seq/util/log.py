@@ -134,7 +134,7 @@ class LogCollection(object):
                           restrict_data=lambda x: True,
                           data_name_parser=None,
                           color_group=False,
-                          title='', eor=-1):
+                          title='', eor=-1, **line_kwargs):
 
         """
         Plot all values for a specific metrics. A function restrict can be
@@ -165,18 +165,18 @@ class LogCollection(object):
                             steps, data = self.prune_data(steps, log.data[dataset][metric_name][:eor])
                             ax.plot(steps, data,
                                      color_group(name, dataset),
-                                     label=label+label_name, linewidth=3.0)
+                                     label=label+label_name, linewidth=3.0, **line_kwargs)
                         else:
                             ax.plot(steps,
                                      log.data[dataset][metric_name][:eor],
-                                     label=label+label_name)
+                                     label=label+label_name, **line_kwargs)
                         ax.tick_params(axis='both', which='major', labelsize=20)
                         plt.xlabel("Epochs", fontsize=24)
                         plt.ylabel("Loss", fontsize=24)
                         plt.title(title)
 
         plt.legend()
-        plt.show()
+        #plt.show()
         return fig
 
     def find_highest_average(self, metric_name, find_basename,

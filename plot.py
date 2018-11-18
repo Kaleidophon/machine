@@ -229,9 +229,143 @@ if __name__ == "__main__":
 
     lc.add_log_from_folder(LOG_PATH, name_parser=custom_name_parser, ext=".log")
 
+    # Plot different losses
     #fig = lc.plot_groups("nll_loss", find_basename=lambda name: name.replace("_", " "), find_data_name=lambda name: name.lower(), eor=-1000)
     #fig = lc.plot_metric("nll_loss", title="NLLoss on SCAN lengths", restrict_model=lambda name: "lengths" in name)
     #fig = lc.plot_metric("nll_loss", title="NLLoss on SCAN left", restrict_model=lambda name: "left" in name)
-    fig = lc.plot_metric("nll_loss", title="NLLoss on SCAN jump", restrict_model=lambda name: "jump" in name)
-    fig = lc.plot_metric("nll_loss", title="NLLoss on SCAN", restrict_model=lambda name: "simple" in name)
-    #fig = lc.plot_metric("antcp_loss", title="Anticipation Loss across datasets", restrict_model=lambda name: "incremental" in name, eor=-100)
+    #fig = lc.plot_metric("nll_loss", title="NLLoss on SCAN jump", restrict_model=lambda name: "jump" in name)
+    #fig = lc.plot_metric("nll_loss", title="NLLoss on SCAN", restrict_model=lambda name: "simple" in name)
+    def color_datasets(name, datasets):
+        if "simple" in name:
+            return "orange"
+        if "lengths" in name:
+            return "green"
+        if "jump" in name:
+            return "purple"
+        if "left" in name:
+            return "cyan"
+
+    # fig = lc.plot_metric(
+    #     "antcp_loss", title="Anticipation Loss for Vanilla Model across Datasets", eor=-100,
+    #     restrict_model=lambda name: "incremental" in name and "scaled" not in name and "attention" not in name,
+    #     color_group=color_datasets, linestyle = "-", alpha = 0.3
+    # )
+    # plt.savefig("/Users/dennisulmer/Desktop/antcp_loss.png")
+
+    # Does scaling the anticipation loss make a difference for convergence?
+    # fig = lc.plot_metric(
+    #     "nll_loss", title="NLLoss Simple Split", restrict_model=lambda name: "simple" in name and "attention" not in name,
+    #     color_group=lambda name, _: "red" if "scaled" in name else "blue", linestyle="-", alpha=0.3
+    # )
+    # plt.savefig("/Users/dennisulmer/Desktop/simple_scaling.png")
+    # fig = lc.plot_metric(
+    #     "nll_loss", title="NLLoss Lengths Split",
+    #     restrict_model=lambda name: "lengths" in name and "attention" not in name,
+    #     color_group=lambda name, _: "red" if "scaled" in name else "blue", linestyle="-", alpha=0.3
+    # )
+    # plt.savefig("/Users/dennisulmer/Desktop/lengths_scaling.png")
+    # fig = lc.plot_metric(
+    #     "nll_loss", title="NLLoss Jump Split",
+    #     restrict_model=lambda name: "jump" in name and "attention" not in name,
+    #     color_group=lambda name, _: "red" if "scaled" in name else "blue", linestyle="-", alpha=0.3
+    # )
+    # plt.savefig("/Users/dennisulmer/Desktop/jump_scaling.png")
+    # fig = lc.plot_metric(
+    #     "nll_loss", title="NLLoss Left Split",
+    #     restrict_model=lambda name: "left" in name and "attention" not in name,
+    #     color_group=lambda name, _: "red" if "scaled" in name else "blue", linestyle="-", alpha=0.3
+    # )
+    # plt.savefig("/Users/dennisulmer/Desktop/left_scaling.png")
+
+    # Does attention male a difference for convergence
+    # NLL Loss
+    # fig = lc.plot_metric(
+    #     "nll_loss", title="NLLoss Simple Split",
+    #     restrict_model=lambda name: "simple" in name and "scaled" not in name,
+    #     color_group=lambda name, _: "red" if "attention" in name else "blue", linestyle="-", alpha=0.3
+    # )
+    # plt.savefig("/Users/dennisulmer/Desktop/simple_nll_attn.png")
+    # fig = lc.plot_metric(
+    #     "nll_loss", title="NLLoss Lengths Split",
+    #     restrict_model=lambda name: "lengths" in name and "scaled" not in name,
+    #     color_group=lambda name, _: "red" if "attention" in name else "blue", linestyle="-", alpha=0.3
+    # )
+    # plt.savefig("/Users/dennisulmer/Desktop/lengths_nll_attn.png")
+    # fig = lc.plot_metric(
+    #     "nll_loss", title="NLLoss Jump Split",
+    #     restrict_model=lambda name: "jump" in name and "scaled" not in name,
+    #     color_group=lambda name, _: "red" if "attention" in name else "blue", linestyle="-", alpha=0.3
+    # )
+    # plt.savefig("/Users/dennisulmer/Desktop/jump_nll_attn.png")
+    # fig = lc.plot_metric(
+    #     "nll_loss", title="NLLoss Left Split",
+    #     restrict_model=lambda name: "left" in name and "scaled" not in name,
+    #     color_group=lambda name, _: "red" if "attention" in name else "blue", linestyle="-", alpha=0.3
+    # )
+    # plt.savefig("/Users/dennisulmer/Desktop/left_nll_attn.png")
+    #
+    # # Anticipation loss
+    # fig = lc.plot_metric(
+    #     "antcp_loss", title="Anticipation Loss Simple Split",
+    #     restrict_model=lambda name: "simple" in name and "scaled" not in name,
+    #     color_group=lambda name, _: "red" if "attention" in name else "blue", linestyle="-", alpha=0.3
+    # )
+    # plt.savefig("/Users/dennisulmer/Desktop/simple_antcp_attn.png")
+    # fig = lc.plot_metric(
+    #     "antcp_loss", title="Anticipation Loss Lengths Split",
+    #     restrict_model=lambda name: "lengths" in name and "scaled" not in name,
+    #     color_group=lambda name, _: "red" if "attention" in name else "blue", linestyle="-", alpha=0.3
+    # )
+    # plt.savefig("/Users/dennisulmer/Desktop/lengths_antcp_attn.png")
+    # fig = lc.plot_metric(
+    #     "antcp_loss", title="Anticipation Loss Jump Split",
+    #     restrict_model=lambda name: "jump" in name and "scaled" not in name,
+    #     color_group=lambda name, _: "red" if "attention" in name else "blue", linestyle="-", alpha=0.3
+    # )
+    # plt.savefig("/Users/dennisulmer/Desktop/jump_antcp_attn.png")
+    # fig = lc.plot_metric(
+    #     "antcp_loss", title="Anticipation Loss Left Split",
+    #     restrict_model=lambda name: "left" in name and "scaled" not in name,
+    #     color_group=lambda name, _: "red" if "attention" in name else "blue", linestyle="-", alpha=0.3
+    # )
+    # plt.savefig("/Users/dennisulmer/Desktop/left_antcp_attn.png")
+
+    # Extreme scaling experiments
+    fig = lc.plot_metric(
+        "nll_loss", title="NLLLoss Left Scaled=0.5",
+        restrict_model=lambda name: "left" in name and "scaled" in name and "3" not in name,
+        color_group=lambda name, _: "green", linestyle="-", alpha=0.3
+    )
+    plt.savefig("/Users/dennisulmer/Desktop/left_nll_05.png")
+    fig = lc.plot_metric(
+        "antcp_loss", title="Anticipation Loss Left Scaled=0.5",
+        restrict_model=lambda name: "left" in name and "scaled" in name and "3" not in name,
+        color_group=lambda name, _: "purple", linestyle="-", alpha=0.3
+    )
+    plt.savefig("/Users/dennisulmer/Desktop/left_antcp_05.png")
+
+    # fig = lc.plot_metric(
+    #     "nll_loss", title="NLLLoss Left Scaled=0.01",
+    #     restrict_model=lambda name: "left" in name and "001" in name,
+    #     color_group=lambda name, _: "green", linestyle="-", alpha=0.3
+    # )
+    # plt.savefig("/Users/dennisulmer/Desktop/left_nll_001.png")
+    # fig = lc.plot_metric(
+    #     "antcp_loss", title="Anticipation Loss Left Scaled=0.01",
+    #     restrict_model=lambda name: "left" in name and "001" in name,
+    #     color_group=lambda name, _: "purple", linestyle="-", alpha=0.3
+    # )
+    # plt.savefig("/Users/dennisulmer/Desktop/left_antcp_001.png")
+    #
+    # fig = lc.plot_metric(
+    #     "nll_loss", title="NLLLoss Left Scaled=10",
+    #     restrict_model=lambda name: "left" in name and "10" in name,
+    #     color_group=lambda name, _: "green", linestyle="-", alpha=0.3
+    # )
+    # plt.savefig("/Users/dennisulmer/Desktop/left_nll_10.png")
+    # fig = lc.plot_metric(
+    #     "antcp_loss", title="Anticipation Loss Left Scaled=10",
+    #     restrict_model=lambda name: "left" in name and "10" in name,
+    #     color_group=lambda name, _: "purple", linestyle="-", alpha=0.3
+    # )
+    # plt.savefig("/Users/dennisulmer/Desktop/left_antcp_10.png")

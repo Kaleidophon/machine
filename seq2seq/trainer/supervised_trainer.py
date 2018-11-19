@@ -266,10 +266,16 @@ class SupervisedTrainer(object):
                 optims = {'adam': optim.Adam, 'adagrad': optim.Adagrad,
                           'adadelta': optim.Adadelta, 'adamax': optim.Adamax,
                           'rmsprop': optim.RMSprop, 'sgd': optim.SGD,
-                           None:optim.Adam}
+                           None:optim.Adam, 'amsgrad': optim.Adam}
                 return optims[optim_name]
 
-            self.optimizer = Optimizer(get_optim(optimizer)(model.parameters(), lr=learning_rate),
+            # Return additional arguments for optimizer if necessary
+            def get_optim_kwargs(optim_name):
+                optim_kwargs = defaultdict(dict, {'amsgrad': {"amsgrad": True}})
+                return optim_kwargs[optim_name]
+
+            optim_kwargs = get_optim_kwargs(optimizer)
+            self.optimizer = Optimizer(get_optim(optimizer)(model.parameters(), lr=learning_rate, **optim_kwargs),
                                        max_grad_norm=5)
 
         self.logger.info("Optimizer: %s, Scheduler: %s" % (self.optimizer.optimizer, self.optimizer.scheduler))
